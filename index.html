@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>주문도우미</title>
+<meta name="theme-color" content="#F4A261">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="주문도우미">
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; font-family: system-ui, -apple-system, "Malgun Gothic", sans-serif; }
+  body { display: flex; flex-direction: column; }
+  #bar { display: none; align-items: center; gap: .5rem; padding: .6rem .8rem; padding-top: calc(.6rem + env(safe-area-inset-top));
+         background: #FFF3E8; color: #3D2B1F; border-bottom: 1px solid #F3D9C4; font-size: 15px; line-height: 1.4; }
+  #bar.show { display: flex; }
+  #bar .msg { flex: 1; }
+  #bar b { color: #E07B39; }
+  #install { border: 0; border-radius: .5rem; padding: .55rem .9rem; font: inherit; font-weight: 700;
+             background: #F4A261; color: #fff; cursor: pointer; white-space: nowrap; }
+  #close { border: 0; background: none; font-size: 1.2rem; color: #3D2B1F; cursor: pointer; }
+  iframe { flex: 1; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<div id="bar"><span class="msg"></span><button id="install" type="button" hidden>📲 핸드폰에 앱으로 깔기</button><button id="close" type="button" aria-label="닫기">✕</button></div>
+<iframe id="app" title="주문도우미" allow="clipboard-write; clipboard-read"></iframe>
+<script>
+  // 주문도우미 본체 (Streamlit). 이 페이지는 '앱으로 설치'를 위한 껍데기예요.
+  const APP = "https://ordertool.streamlit.app/";
+  const KEEP = "ordertoolQuery";  // 층/이름/비밀번호 통과 표시(?floor=&name=&k=)를 기억
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+  // 1) 카톡 안에서 열면 기본 브라우저로 넘긴다
+  if (/KAKAOTALK/i.test(ua)) {
+    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+  }
+
+  // 2) 앱 화면: 주소의 ?쿼리 > 기억해 둔 쿼리 순으로 붙여서 띄운다
+  const params = new URLSearchParams(location.search);
+  if (![...params.keys()].length) {
+    try { new URLSearchParams(localStorage.getItem(KEEP) || "").forEach((v, k) => params.set(k, v)); } catch (e) {}
+  }
+  params.set("embed", "true");
+  document.getElementById("app").src = APP + "?" + params.toString();
+
+  // 앱이 층/이름/비밀번호 통과 표시가 바뀔 때마다 알려주면 기억해 둔다
+  addEventListener("message", (ev) => {
+    if (!/\.streamlit\.app$/.test(new URL(ev.origin).hostname)) return;
+    if (ev.data && ev.data.type === "ordertool-url" && ev.data.url) {
+      const q = new URL(ev.data.url).searchParams;
+      q.delete("embed");
+      try { localStorage.setItem(KEEP, q.toString()); } catch (e) {}
+    }
+  });
+
+  // 3) 설치 버튼
+  const bar = document.getElementById("bar"), msg = bar.querySelector(".msg");
+  const btn = document.getElementById("install");
+  let closed = false;
+  try { closed = localStorage.getItem("ordertoolBarClosed") === "1"; } catch (e) {}
+  document.getElementById("close").onclick = () => {
+    bar.classList.remove("show");
+    try { localStorage.setItem("ordertoolBarClosed", "1"); } catch (e) {}
+  };
+  let deferred = null;
+  addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferred = e;
+    if (standalone) return;
+    msg.innerHTML = "주문도우미를 <b>앱으로 설치</b>할 수 있어요.";
+    btn.hidden = false;
+    bar.classList.add("show");  // 설치 버튼은 닫았던 적이 있어도 다시 보여준다
+  });
+  btn.onclick = async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    const choice = await deferred.userChoice.catch(() => null);
+    if (choice && choice.outcome === "accepted") bar.classList.remove("show");
+    deferred = null;
+  };
+  addEventListener("appinstalled", () => bar.classList.remove("show"));
+  if (isIOS && !standalone && !closed) {
+    msg.innerHTML = "📲 아이폰은 사파리 아래쪽 <b>공유(□↑)</b> → <b>홈 화면에 추가</b>를 누르면 앱처럼 깔려요.";
+    bar.classList.add("show");
+  }
+
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
