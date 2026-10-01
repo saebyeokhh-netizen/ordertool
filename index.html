@@ -21,12 +21,14 @@
   #install { border: 0; border-radius: .5rem; padding: .55rem .9rem; font: inherit; font-weight: 700;
              background: #F4A261; color: #fff; cursor: pointer; white-space: nowrap; }
   #close { border: 0; background: none; font-size: 1.2rem; color: #3D2B1F; cursor: pointer; }
-  iframe { flex: 1; width: 100%; border: 0; }
+  /* 앱을 조금 더 길게 띄우고 넘치는 아래쪽을 잘라서 Streamlit Cloud가 붙이는 하단 막대가 화면 밖으로 가게 한다 */
+  #frame { flex: 1; position: relative; overflow: hidden; }
+  #frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% + 52px); border: 0; }
 </style>
 </head>
 <body>
 <div id="bar"><span class="msg"></span><button id="install" type="button" hidden>📲 핸드폰에 앱으로 깔기</button><button id="close" type="button" aria-label="닫기">✕</button></div>
-<iframe id="app" title="주문도우미" allow="clipboard-write; clipboard-read"></iframe>
+<div id="frame"><iframe id="app" title="주문도우미" allow="clipboard-write; clipboard-read"></iframe></div>
 <script>
   // 주문도우미 본체 (Streamlit). 이 페이지는 '앱으로 설치'를 위한 껍데기예요.
   const APP = "https://ordertool.streamlit.app/";
