@@ -22,7 +22,7 @@
              background: #F4A261; color: #fff; cursor: pointer; white-space: nowrap; }
   #close { border: 0; background: none; font-size: 1.2rem; color: #3D2B1F; cursor: pointer; }
   /* 앱을 조금 더 길게 띄우고 넘치는 아래쪽을 잘라서 Streamlit Cloud가 붙이는 하단 막대가 화면 밖으로 가게 한다 */
-  #frame { flex: 1; position: relative; overflow: hidden; }
+  #frame { flex: 1; position: relative; overflow: hidden; margin-bottom: env(safe-area-inset-bottom); }
   #frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% + 52px); border: 0; }
 </style>
 </head>
